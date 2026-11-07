@@ -2,15 +2,19 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RaceDayApi.Data;
 using RaceDayApi.DTOs;
+using RaceDayApi.Services;
 
 namespace RaceDayApi.Tests
 {
+    // starts the real API in memory for the tests, but swaps SQL Server for an in-memory database
     public class RaceDayFactory : WebApplicationFactory<Program>
     {
-       
+        // every factory gets its own database name so test classes don't share data
         private readonly string _dbName = "RaceDayTestDb_" + Guid.NewGuid();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -19,7 +23,8 @@ namespace RaceDayApi.Tests
 
             builder.ConfigureServices(services =>
             {
-                
+                // EF Core keeps the SQL Server setup in more than one registration,
+                // so we remove all of them before adding the in-memory database
                 var oldSetup = services.Where(d =>
                     d.ServiceType == typeof(DbContextOptions<RaceDayContext>) ||
                     (d.ServiceType.IsGenericType &&
@@ -34,17 +39,30 @@ namespace RaceDayApi.Tests
 
                 services.AddDbContext<RaceDayContext>(options =>
                     options.UseInMemoryDatabase(_dbName));
+
+                // never talk to Azure in the tests, use a fake that just returns a link
+                services.RemoveAll<IBlobStorageService>();
+                services.AddSingleton<IBlobStorageService, FakeBlobStorageService>();
             });
         }
     }
 
- 
+    // stands in for Azure Blob Storage during the tests
+    public class FakeBlobStorageService : IBlobStorageService
+    {
+        public Task<string> UploadImageAsync(IFormFile file, string folder)
+        {
+            return Task.FromResult($"https://fake-storage.test/{folder}/{file.FileName}");
+        }
+    }
+
+    // small helper methods so the tests stay short and easy to read
     public static class TestHelpers
     {
         public const string OrganiserCode = "RACEDAY-ORG-2026";
         public const string Password = "Password123";
 
-       
+        // a new client has its own cookies, so each client is its own "browser"
         public static HttpClient CreateTestClient(RaceDayFactory factory)
         {
             return factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -54,7 +72,7 @@ namespace RaceDayApi.Tests
             });
         }
 
-       
+        // random email so tests never clash with each other
         public static string NewEmail()
         {
             return $"user_{Guid.NewGuid():N}@test.com";
@@ -72,7 +90,7 @@ namespace RaceDayApi.Tests
             };
         }
 
-      
+        // registers a new user and logs them in, the client keeps the session cookie
         public static async Task<HttpClient> LoggedInClientAsync(RaceDayFactory factory, string role)
         {
             var client = CreateTestClient(factory);
