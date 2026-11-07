@@ -19,9 +19,13 @@ namespace RaceDayApi.Models
         [Required, MaxLength(150)]
         public string Location { get; set; } = string.Empty;
 
-      
+        // added because the Part 2 brief asks for it: Run, Walk or Cycle
         [Required, MaxLength(20)]
         public string EventType { get; set; } = "Run";
+
+        // link to the banner image saved in Azure Blob Storage (Part 3)
+        [MaxLength(500)]
+        public string? BannerUrl { get; set; }
 
         public DateTime CreatedAt { get; set; }
 
