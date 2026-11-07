@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using RaceDayApi.Data;
 using RaceDayApi.DTOs;
 using RaceDayApi.Models;
+using RaceDayApi.Services;
 
 namespace RaceDayApi.Controllers
 {
@@ -13,13 +14,15 @@ namespace RaceDayApi.Controllers
     public class EventsController : ControllerBase
     {
         private readonly RaceDayContext _context;
+        private readonly IBlobStorageService _blobStorage;
 
         // the only event types we allow
         private static readonly string[] ValidEventTypes = { "Run", "Walk", "Cycle" };
 
-        public EventsController(RaceDayContext context)
+        public EventsController(RaceDayContext context, IBlobStorageService blobStorage)
         {
             _context = context;
+            _blobStorage = blobStorage;
         }
 
         // gets the id of the logged in user from the cookie
@@ -42,26 +45,89 @@ namespace RaceDayApi.Controllers
                 EventType = ev.EventType,
                 Distance = ev.RouteInfo?.Distance,
                 ElevationGainM = ev.RouteInfo?.ElevationGainM,
-                RouteDescript = ev.RouteInfo?.RouteDescript
+                RouteDescript = ev.RouteInfo?.RouteDescript,
+                BannerUrl = ev.BannerUrl
             };
         }
 
         /// <summary>
         /// Lists all upcoming events, soonest first.
         /// </summary>
-        /// <remarks>Open to everyone, no login needed.</remarks>
+        /// <remarks>
+        /// Open to everyone, no login needed. You can narrow the list with the optional
+        /// eventType (Run, Walk or Cycle), location and search (part of the event name).
+        /// </remarks>
         /// <response code="200">A list of upcoming events.</response>
         [HttpGet]
         [ProducesResponseType(typeof(List<EventResponseDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetEvents()
+        public async Task<IActionResult> GetEvents(
+            [FromQuery] string? eventType,
+            [FromQuery] string? location,
+            [FromQuery] string? search)
         {
+            IQueryable<Event> query = _context.Events
+                .Include(e => e.RouteInfo)
+                .Where(e => e.EventDate >= DateTime.Today);
+
+            if (!string.IsNullOrWhiteSpace(eventType))
+            {
+                var type = eventType.Trim();
+                query = query.Where(e => e.EventType == type);
+            }
+
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var place = location.Trim();
+                query = query.Where(e => e.Location.Contains(place));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var text = search.Trim();
+                query = query.Where(e => e.Name.Contains(text));
+            }
+
+            var events = await query.OrderBy(e => e.EventDate).ToListAsync();
+
+            return Ok(events.Select(ToResponse));
+        }
+
+        /// <summary>
+        /// Lists every event created by the logged in organiser, with the number of enrolments.
+        /// </summary>
+        /// <remarks>Used by the organiser dashboard. Includes past events.</remarks>
+        /// <response code="200">The organiser's own events.</response>
+        /// <response code="401">Not logged in.</response>
+        /// <response code="403">Logged in as a Participant.</response>
+        [Authorize(Roles = "Organiser")]
+        [HttpGet("mine")]
+        [ProducesResponseType(typeof(List<EventResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetMyEvents()
+        {
+            var userId = GetCurrentUserId();
+
             var events = await _context.Events
                 .Include(e => e.RouteInfo)
-                .Where(e => e.EventDate >= DateTime.Today)
+                .Where(e => e.OrganiserId == userId)
                 .OrderBy(e => e.EventDate)
                 .ToListAsync();
 
-            return Ok(events.Select(ToResponse));
+            var counts = await _context.Enrolments
+                .Where(en => en.Category.Event.OrganiserId == userId)
+                .GroupBy(en => en.Category.EventId)
+                .Select(g => new { EventId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.EventId, x => x.Count);
+
+            var response = events.Select(ev =>
+            {
+                var dto = ToResponse(ev);
+                dto.EnrolmentCount = counts.TryGetValue(ev.EventId, out var count) ? count : 0;
+                return dto;
+            }).ToList();
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -232,6 +298,48 @@ namespace RaceDayApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Uploads the banner image of an event to Blob Storage. Organisers only, and only for their own events.
+        /// </summary>
+        /// <remarks>Send the image as a form file called "file". JPG, PNG or WEBP, 5 MB at most.</remarks>
+        /// <response code="200">Banner saved, returns the image link.</response>
+        /// <response code="400">Not an image, or the image is too big.</response>
+        /// <response code="401">Not logged in.</response>
+        /// <response code="403">Participant, or an event that belongs to another organiser.</response>
+        /// <response code="404">No event with that id.</response>
+        [Authorize(Roles = "Organiser")]
+        [HttpPost("{id:int}/banner")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ImageUploadResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UploadBanner(int id, IFormFile file)
+        {
+            var ev = await _context.Events.FindAsync(id);
+            if (ev == null)
+            {
+                return NotFound();
+            }
+
+            if (ev.OrganiserId != GetCurrentUserId())
+            {
+                return Forbid();
+            }
+
+            var error = ImageValidator.Validate(file);
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            ev.BannerUrl = await _blobStorage.UploadImageAsync(file, "banners");
+            await _context.SaveChangesAsync();
+
+            return Ok(new ImageUploadResponseDto { Url = ev.BannerUrl });
         }
 
         /// <summary>

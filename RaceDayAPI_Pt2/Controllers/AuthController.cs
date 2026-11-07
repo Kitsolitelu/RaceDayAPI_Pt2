@@ -18,7 +18,7 @@ namespace RaceDayApi.Controllers
         private readonly RaceDayContext _context;
         private readonly IConfiguration _config;
 
-        // built in hasher - it adds a salt and hashes the password for us
+    
         private readonly PasswordHasher<User> _hasher = new PasswordHasher<User>();
 
         public AuthController(RaceDayContext context, IConfiguration config)
@@ -29,11 +29,9 @@ namespace RaceDayApi.Controllers
 
         /// <summary>
         /// Creates a new account as an Organiser or a Participant.
-        /// </summary>
+        /// </summary
         /// <remarks>
-        /// Send fullName, email, password (min 8 characters) and role (Organiser or Participant).
-        /// Organisers must also send the organiserCode.
-        /// </remarks>
+        /// 
         /// <response code="201">Account created, returns the new user details.</response>
         /// <response code="400">Invalid details, duplicate email or wrong organiser code.</response>
         [HttpPost("register")]
@@ -56,7 +54,7 @@ namespace RaceDayApi.Controllers
                 return BadRequest("Role must be either Organiser or Participant.");
             }
 
-            // so that not just anyone can make themselves an organiser
+           
             if (role == "Organiser")
             {
                 var secretCode = _config["OrganiserSettings:AccessCode"];
@@ -66,7 +64,7 @@ namespace RaceDayApi.Controllers
                 }
             }
 
-            // emails are always saved in lowercase so the duplicate check is simple
+           
             var email = dto.Email.Trim().ToLower();
 
             bool emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
@@ -82,7 +80,7 @@ namespace RaceDayApi.Controllers
                 Role = role
             };
 
-            // hash the password, the real one is never saved
+    
             user.PasswordHash = _hasher.HashPassword(user, dto.Password);
 
             _context.Users.Add(user);
@@ -99,13 +97,7 @@ namespace RaceDayApi.Controllers
             return StatusCode(StatusCodes.Status201Created, result);
         }
 
-        /// <summary>
-        /// Logs a user in and starts a session.
-        /// </summary>
-        /// <remarks>
-        /// Send email and password. A session cookie is set that keeps the user logged in
-        /// and remembers their role.
-        /// </remarks>
+    
         /// <response code="200">Logged in, returns the user's role.</response>
         /// <response code="401">Wrong email or password.</response>
         [HttpPost("login")]
@@ -121,14 +113,14 @@ namespace RaceDayApi.Controllers
                 return Unauthorized("Invalid email or password.");
             }
 
-            // compare the typed password with the saved hash
+         
             var check = _hasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
             if (check == PasswordVerificationResult.Failed)
             {
                 return Unauthorized("Invalid email or password.");
             }
 
-            // these claims are stored in the cookie, this is how we remember the role
+  
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
@@ -145,9 +137,6 @@ namespace RaceDayApi.Controllers
             return Ok(new { message = "Logged in successfully.", role = user.Role });
         }
 
-        /// <summary>
-        /// Logs the current user out and ends the session.
-        /// </summary>
         /// <response code="200">Logged out.</response>
         /// <response code="401">Not logged in.</response>
         [Authorize]

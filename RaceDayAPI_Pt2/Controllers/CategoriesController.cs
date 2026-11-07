@@ -24,15 +24,11 @@ namespace RaceDayApi.Controllers
             return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         }
 
-        /// <summary>
-        /// Enrols the logged in participant into a category. Participants only.
-        /// </summary>
-        /// <remarks>No body needed, the category id is in the address.</remarks>
-        /// <response code="201">Enrolment created.</response>
-        /// <response code="401">Not logged in.</response>
-        /// <response code="403">Logged in as an Organiser.</response>
-        /// <response code="404">No category with that id.</response>
-        /// <response code="409">Already enrolled in this category, or the category is full.</response>
+        
+        /// <response code="201">
+        /// <response code="401"
+        /// <response code="403">
+        /// <response code="404">
         [Authorize(Roles = "Participant")]
         [HttpPost("{id:int}/enrol")]
         [ProducesResponseType(typeof(EnrolmentResponseDto), StatusCodes.Status201Created)]
@@ -53,7 +49,7 @@ namespace RaceDayApi.Controllers
 
             var userId = GetCurrentUserId();
 
-            // one enrolment per participant per category
+         
             bool alreadyEnrolled = await _context.Enrolments
                 .AnyAsync(e => e.CategoryId == id && e.ParticipantId == userId);
             if (alreadyEnrolled)
@@ -61,7 +57,7 @@ namespace RaceDayApi.Controllers
                 return Conflict("You are already enrolled in this category.");
             }
 
-            // check the category is not full
+        
             if (category.MaxParticipants != null)
             {
                 int taken = await _context.Enrolments.CountAsync(e => e.CategoryId == id);

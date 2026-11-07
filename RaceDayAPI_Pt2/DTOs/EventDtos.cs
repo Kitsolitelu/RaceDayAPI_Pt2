@@ -43,5 +43,9 @@ namespace RaceDayApi.DTOs
         public decimal? Distance { get; set; }
         public int? ElevationGainM { get; set; }
         public string? RouteDescript { get; set; }
+        public string? BannerUrl { get; set; }
+
+        // only filled in by GET /api/events/mine (the organiser dashboard)
+        public int EnrolmentCount { get; set; }
     }
 }

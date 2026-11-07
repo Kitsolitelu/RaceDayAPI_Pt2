@@ -24,13 +24,7 @@ namespace RaceDayApi.Controllers
             return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         }
 
-        /// <summary>
-        /// Captures the finish time and position for one enrolment. Organisers only.
-        /// </summary>
-        /// <remarks>
-        /// Send finishTime (like "01:45:30") and position. Only the organiser of the
-        /// event can capture its results, and each enrolment can only have one result.
-        /// </remarks>
+      
         /// <response code="201">Result captured.</response>
         /// <response code="400">Invalid finish time or position.</response>
         /// <response code="401">Not logged in.</response>
@@ -62,7 +56,7 @@ namespace RaceDayApi.Controllers
                 return NotFound("Enrolment not found.");
             }
 
-            // only the organiser of this event can add its results
+          
             if (enrolment.Category.Event.OrganiserId != GetCurrentUserId())
             {
                 return Forbid();
