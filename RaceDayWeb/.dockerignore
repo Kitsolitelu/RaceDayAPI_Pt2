@@ -1,0 +1,8 @@
+# keep the build small and fast: none of this is needed to build the image
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/.git
+Dockerfile
+.dockerignore
