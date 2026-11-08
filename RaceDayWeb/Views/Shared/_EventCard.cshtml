@@ -1,0 +1,22 @@
+@model EventResponseDto
+
+<div class="card event-card h-100">
+    @if (!string.IsNullOrEmpty(Model.BannerUrl))
+    {
+        <img src="@Model.BannerUrl" class="event-banner" alt="Banner for @Model.Name" />
+    }
+    else
+    {
+        <div class="event-banner event-banner-empty"><span>@Model.EventType.ToUpper()</span></div>
+    }
+    <div class="card-body d-flex flex-column">
+        <div><span class="type-chip type-@Model.EventType.ToLower()">@Model.EventType</span></div>
+        <h3 class="event-title mt-2">@Model.Name</h3>
+        <ul class="event-facts">
+            <li>@Model.EventDate.ToString("dd MMM yyyy")</li>
+            <li>@Model.Location</li>
+            <li>@(Model.Distance?.ToString("0.##") ?? "-") km</li>
+        </ul>
+        <a class="btn btn-primary mt-auto" asp-controller="Events" asp-action="Details" asp-route-id="@Model.EventId">View event</a>
+    </div>
+</div>
