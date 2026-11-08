@@ -1,4 +1,4 @@
-name: RaceDay API CI
+name: RaceDay CI
 
 # runs every time code is pushed to GitHub (any branch) or a pull request is opened
 on:
@@ -9,8 +9,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # if your solution (.slnx) file is NOT in the root of the repo, put its folder here
-    # for example ./Part2 - if it is in the root, leave it as ./
     defaults:
       run:
         working-directory: ./
@@ -27,8 +25,14 @@ jobs:
       - name: Restore packages
         run: dotnet restore
 
-      - name: Build
+      - name: Build the whole solution (API, tests and MVC website)
         run: dotnet build --no-restore --configuration Release
+
+      - name: Build the MVC project
+        run: dotnet build RaceDayWeb/RaceDayWeb.csproj --no-restore --configuration Release
 
       - name: Run unit tests
         run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Build the Docker image for the MVC website
+        run: docker build -t raceday-web ./RaceDayWeb
