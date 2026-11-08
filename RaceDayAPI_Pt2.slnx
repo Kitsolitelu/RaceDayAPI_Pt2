@@ -1,4 +1,6 @@
 <Solution>
+  <Folder Name="/WebsiteOfRaceDay/" />
   <Project Path="RaceDayAPI_Pt2.Tests/RaceDayAPI_Pt2.Tests.csproj" Id="ec6e6bd6-d194-4a41-a08b-90be4568fd39" />
   <Project Path="RaceDayAPI_Pt2/RaceDayAPI_Pt2.csproj" />
+  <Project Path="RaceDayWeb/RaceDayWeb.csproj" />
 </Solution>
