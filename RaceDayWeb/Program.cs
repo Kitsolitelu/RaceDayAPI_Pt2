@@ -28,10 +28,21 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+.ConfigurePrimaryHttpMessageHandler(() =>
 {
-    UseCookies = false,       // every user's API cookie is kept in their own session instead
-    AllowAutoRedirect = false
+    var handler = new HttpClientHandler
+    {
+        UseCookies = false,       // every user's API cookie is kept in their own session instead
+        AllowAutoRedirect = false
+    };
+
+    // development only: inside Docker the container does not trust the API's development certificate
+    if (builder.Configuration.GetValue<bool>("ApiSettings:TrustDevCertificate"))
+    {
+        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+    }
+
+    return handler;
 });
 
 var app = builder.Build();
