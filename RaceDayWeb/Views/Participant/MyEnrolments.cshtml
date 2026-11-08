@@ -1,0 +1,38 @@
+@model List<EnrolmentResponseDto>
+@{
+    ViewData["Title"] = "My enrolments";
+}
+<div class="container py-4">
+    <h1>My enrolments</h1>
+    <p class="text-muted">Every event you have signed up for, and where each enrolment stands.</p>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <h2>You have not enrolled yet</h2>
+            <p>Find an event and pick a category to get started.</p>
+            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Browse events</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table rd-table align-middle">
+                <thead>
+                    <tr><th>Event</th><th>Category</th><th>Enrolled on</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model)
+                    {
+                        <tr>
+                            <td><a asp-controller="Events" asp-action="Details" asp-route-id="@e.EventId">@e.EventName</a></td>
+                            <td>@e.CategoryName</td>
+                            <td>@e.EnrolmentDate.ToString("dd MMM yyyy")</td>
+                            <td><partial name="_StatusBadge" model="e.Status" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

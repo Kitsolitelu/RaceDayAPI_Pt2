@@ -1,0 +1,95 @@
+@model EventDetailsViewModel
+@{
+    var ev = Model.Event;
+    ViewData["Title"] = ev.Name;
+    var user = Context.Session.GetUser();
+    var isPast = ev.EventDate.Date < DateTime.Today;
+}
+
+@if (!string.IsNullOrEmpty(ev.BannerUrl))
+{
+    <div class="detail-banner" style="background-image:url('@ev.BannerUrl')" role="img" aria-label="Banner for @ev.Name"></div>
+}
+else
+{
+    <div class="detail-banner detail-banner-empty"><span>@ev.EventType.ToUpper()</span></div>
+}
+
+<div class="container py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <span class="type-chip type-@ev.EventType.ToLower()">@ev.EventType</span>
+            @if (isPast)
+            {
+                <span class="status-badge status-other ms-2">Event finished</span>
+            }
+            <h1 class="mt-2">@ev.Name</h1>
+
+            <div class="row g-3 my-3 fact-tiles">
+                <div class="col-6 col-md-3"><div class="fact-tile"><small>Date</small><strong>@ev.EventDate.ToString("dd MMM yyyy")</strong></div></div>
+                <div class="col-6 col-md-3"><div class="fact-tile"><small>Location</small><strong>@ev.Location</strong></div></div>
+                <div class="col-6 col-md-3"><div class="fact-tile"><small>Distance</small><strong>@(ev.Distance?.ToString("0.##") ?? "-") km</strong></div></div>
+                <div class="col-6 col-md-3"><div class="fact-tile"><small>Elevation gain</small><strong>@(ev.ElevationGainM.HasValue ? ev.ElevationGainM + " m" : "-")</strong></div></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(ev.Description))
+            {
+                <h2 class="h4">About this event</h2>
+                <p>@ev.Description</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(ev.RouteDescript))
+            {
+                <h2 class="h4">The route</h2>
+                <p>@ev.RouteDescript</p>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card category-card">
+                <div class="card-body">
+                    <h2 class="h4">Categories</h2>
+
+                    @if (!Model.Categories.Any())
+                    {
+                        <p class="text-muted mb-0">The organiser has not added categories yet. Check back soon.</p>
+                    }
+
+                    @foreach (var c in Model.Categories)
+                    {
+                        <div class="category-row">
+                            <div>
+                                <strong>@c.Name</strong>
+                                <div class="small text-muted">
+                                    @Formatters.Money(c.Price)@(c.MaxParticipants.HasValue ? " - max " + c.MaxParticipants + " people" : "")
+                                </div>
+                            </div>
+
+                            @if (isPast)
+                            {
+                                <span class="small text-muted">Closed</span>
+                            }
+                            else if (user == null)
+                            {
+                                <a class="btn btn-outline-primary btn-sm" asp-controller="Account" asp-action="Login"
+                                   asp-route-returnUrl="@Url.Action("Details", "Events", new { id = ev.EventId })">Log in to enrol</a>
+                            }
+                            else if (user.IsParticipant)
+                            {
+                                <form asp-controller="Events" asp-action="Enrol" method="post">
+                                    <input type="hidden" name="eventId" value="@ev.EventId" />
+                                    <input type="hidden" name="categoryId" value="@c.CategoryId" />
+                                    <button type="submit" class="btn btn-primary btn-sm">Enrol</button>
+                                </form>
+                            }
+                        </div>
+                    }
+
+                    @if (user != null && user.IsOrganiser)
+                    {
+                        <p class="small text-muted mt-3 mb-0">Organisers cannot enrol. Use your dashboard to manage events.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
