@@ -1,0 +1,73 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<section class="hero hero-small">
+    <div class="container">
+        <h1>Organiser dashboard</h1>
+        <p>Your events, who has enrolled and what is coming up.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @if (Model.Error != null)
+    {
+        <div class="alert alert-warning">@Model.Error</div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="stat-card"><small>Events created</small><strong>@Model.Events.Count</strong></div></div>
+        <div class="col-md-4"><div class="stat-card"><small>Upcoming events</small><strong>@Model.UpcomingCount</strong></div></div>
+        <div class="col-md-4"><div class="stat-card"><small>Total enrolments</small><strong>@Model.TotalEnrolments</strong></div></div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h4 mb-0">Your events</h2>
+        <a class="btn btn-primary btn-sm" asp-controller="ManageEvents" asp-action="Create">Create event</a>
+    </div>
+
+    @if (!Model.Events.Any())
+    {
+        <div class="empty-state">
+            <h2>No events yet</h2>
+            <p>Create your first event and add categories so people can enrol.</p>
+            <a class="btn btn-primary" asp-controller="ManageEvents" asp-action="Create">Create your first event</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table rd-table align-middle">
+                <thead>
+                    <tr><th>Event</th><th>Date</th><th>Type</th><th class="text-center">Enrolments</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var ev in Model.Events)
+                    {
+                        var upcoming = ev.EventDate.Date >= DateTime.Today;
+                        <tr>
+                            <td>
+                                <strong>@ev.Name</strong>
+                                @if (upcoming)
+                                {
+                                    <span class="status-badge status-confirmed ms-2">Upcoming</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-other ms-2">Finished</span>
+                                }
+                            </td>
+                            <td>@ev.EventDate.ToString("dd MMM yyyy")</td>
+                            <td>@ev.EventType</td>
+                            <td class="text-center"><span class="count-pill">@ev.EnrolmentCount</span></td>
+                            <td class="text-end">
+                                <a class="btn btn-outline-primary btn-sm" asp-controller="ManageEnrolments" asp-action="Index" asp-route-eventId="@ev.EventId">Enrolments</a>
+                                <a class="btn btn-outline-secondary btn-sm" asp-controller="ManageEvents" asp-action="Edit" asp-route-id="@ev.EventId">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

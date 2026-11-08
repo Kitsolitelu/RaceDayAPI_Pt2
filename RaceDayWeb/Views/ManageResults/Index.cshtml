@@ -1,0 +1,55 @@
+@model ManageResultsViewModel
+@{
+    ViewData["Title"] = "Results";
+}
+<div class="container py-4">
+    <a asp-controller="ManageEvents" asp-action="Index" class="small">&larr; Back to my events</a>
+    <h1 class="mt-2">Capture results</h1>
+    <p class="text-muted">@Model.Event.Name - @Model.Event.EventDate.ToString("dd MMM yyyy")</p>
+    <p class="small text-muted">Enter the finish time as hours:minutes:seconds (for example 0:52:30) and the finishing position. Saved results show on the participant's My results page straight away.</p>
+
+    @if (!Model.Enrolments.Any())
+    {
+        <div class="empty-state"><h2>Nobody has enrolled</h2><p>There is nobody to capture results for yet.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table rd-table align-middle">
+                <thead><tr><th>Participant</th><th>Category</th><th>Status</th><th>Result</th></tr></thead>
+                <tbody>
+                    @foreach (var e in Model.Enrolments)
+                    {
+                        var result = Model.Results.FirstOrDefault(r => r.EnrolmentId == e.EnrolmentId);
+                        <tr>
+                            <td><strong>@e.ParticipantName</strong></td>
+                            <td>@e.CategoryName</td>
+                            <td><partial name="_StatusBadge" model="e.Status" /></td>
+                            <td>
+                                @if (result != null)
+                                {
+                                    <span class="time-cell">@Formatters.Time(result.FinishTime)</span>
+                                    @if (result.Position.HasValue)
+                                    {
+                                        <span class="count-pill ms-2">@Formatters.Ordinal(result.Position.Value)</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <form asp-action="Capture" method="post" class="result-form">
+                                        <input type="hidden" name="EnrolmentId" value="@e.EnrolmentId" />
+                                        <input type="hidden" name="EventId" value="@Model.Event.EventId" />
+                                        <input name="FinishTime" class="form-control form-control-sm" placeholder="h:mm:ss"
+                                               pattern="\d{1,2}:\d{2}:\d{2}" title="Hours:minutes:seconds, for example 0:52:30" required />
+                                        <input name="Position" type="number" min="1" class="form-control form-control-sm" placeholder="Position" required />
+                                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

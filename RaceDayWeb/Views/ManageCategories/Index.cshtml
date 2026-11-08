@@ -1,0 +1,62 @@
+@model ManageCategoriesViewModel
+@{
+    ViewData["Title"] = "Categories";
+}
+<div class="container py-4">
+    <a asp-controller="ManageEvents" asp-action="Index" class="small">&larr; Back to my events</a>
+    <h1 class="mt-2">Categories</h1>
+    <p class="text-muted">@Model.Event.Name - @Model.Event.EventDate.ToString("dd MMM yyyy")</p>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            @if (!Model.Categories.Any())
+            {
+                <div class="empty-state"><h2>No categories yet</h2><p>Add at least one so participants can enrol.</p></div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table rd-table align-middle">
+                        <thead><tr><th>Category</th><th>Price</th><th>Maximum</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in Model.Categories)
+                            {
+                                <tr>
+                                    <td><strong>@c.Name</strong></td>
+                                    <td>@Formatters.Money(c.Price)</td>
+                                    <td>@(c.MaxParticipants.HasValue ? c.MaxParticipants.ToString() : "No limit")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card"><div class="card-body p-4">
+                <h2 class="h4">Add a category</h2>
+                <form asp-action="Add" method="post" novalidate>
+                    <input type="hidden" asp-for="NewCategory.EventId" />
+                    <div class="mb-3">
+                        <label asp-for="NewCategory.Name" class="form-label">Category name</label>
+                        <input asp-for="NewCategory.Name" class="form-control" placeholder="For example Under 20 or 10km" />
+                        <span asp-validation-for="NewCategory.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewCategory.Price" class="form-label"></label>
+                        <input asp-for="NewCategory.Price" class="form-control" type="number" step="0.01" min="0" />
+                        <span asp-validation-for="NewCategory.Price" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewCategory.MaxParticipants" class="form-label"></label>
+                        <input asp-for="NewCategory.MaxParticipants" class="form-control" type="number" min="1" />
+                        <div class="form-text">Leave empty for no limit.</div>
+                        <span asp-validation-for="NewCategory.MaxParticipants" class="text-danger small"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add category</button>
+                </form>
+            </div></div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,35 @@
+@model ManageEnrolmentsViewModel
+@{
+    ViewData["Title"] = "Enrolments";
+}
+<div class="container py-4">
+    <a asp-controller="ManageEvents" asp-action="Index" class="small">&larr; Back to my events</a>
+    <h1 class="mt-2">Enrolments</h1>
+    <p class="text-muted">@Model.Event.Name - @Model.Event.EventDate.ToString("dd MMM yyyy")</p>
+
+    @if (!Model.Enrolments.Any())
+    {
+        <div class="empty-state"><h2>No enrolments yet</h2><p>Participants will appear here as soon as they enrol.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table rd-table align-middle">
+                <thead><tr><th>Participant</th><th>Category</th><th>Enrolled on</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var e in Model.Enrolments)
+                    {
+                        <tr>
+                            <td><strong>@e.ParticipantName</strong></td>
+                            <td>@e.CategoryName</td>
+                            <td>@e.EnrolmentDate.ToString("dd MMM yyyy")</td>
+                            <td><partial name="_StatusBadge" model="e.Status" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small">@Model.Enrolments.Count enrolment(s) in total.</p>
+        <a class="btn btn-outline-primary" asp-controller="ManageResults" asp-action="Index" asp-route-eventId="@Model.Event.EventId">Capture results</a>
+    }
+</div>
