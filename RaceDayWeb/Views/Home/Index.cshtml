@@ -1,0 +1,61 @@
+@model EventListViewModel
+@{
+    ViewData["Title"] = "Upcoming events";
+}
+
+<section class="hero">
+    <div class="container">
+        <h1>Find your next race</h1>
+        <p>Runs, walks and rides near you. Pick an event, choose a category and enrol in seconds.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    <form method="get" asp-controller="Home" asp-action="Index" class="filter-bar row g-3 align-items-end mb-4">
+        <div class="col-md-4">
+            <label class="form-label" for="search">Event name</label>
+            <input id="search" name="search" value="@Model.Search" class="form-control" placeholder="For example City 10km" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="eventType">Event type</label>
+            <select id="eventType" name="eventType" class="form-select">
+                <option value="">All types</option>
+                @foreach (var type in new[] { "Run", "Walk", "Cycle" })
+                {
+                    <option value="@type" selected="@(Model.EventType == type)">@type</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="location">Location</label>
+            <input id="location" name="location" value="@Model.Location" class="form-control" placeholder="For example Pretoria" />
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filter</button>
+            <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Clear</a>
+        </div>
+    </form>
+
+    @if (Model.Error != null)
+    {
+        <div class="alert alert-warning">@Model.Error</div>
+    }
+    else if (!Model.Events.Any())
+    {
+        <div class="empty-state">
+            <h2>No events found</h2>
+            <p>Try a different name, type or location, or check back soon for new events.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var ev in Model.Events)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <partial name="_EventCard" model="ev" />
+                </div>
+            }
+        </div>
+    }
+</div>
